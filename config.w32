@@ -1,0 +1,13 @@
+// $Id$
+// vim:ft=javascript
+
+// If your extension references something external, use ARG_WITH
+// ARG_WITH("yaf_ext", "for yaf_ext support", "no");
+
+// Otherwise, use ARG_ENABLE
+// ARG_ENABLE("yaf_ext", "enable yaf_ext support", "no");
+
+if (PHP_YAF_EXT != "no") {
+	EXTENSION("yaf_ext", "yaf_ext.c");
+}
+
