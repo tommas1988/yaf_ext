@@ -27,7 +27,16 @@
 #include "ext/standard/info.h"
 #include "php_yaf_ext.h"
 #include "ext/yaf/php_yaf.h"
+#include "ext/yaf/yaf_namespace.h"
+#include "ext/yaf/yaf_bootstrap.h"
+#include "ext/yaf/yaf_config.h"
 #include "ext/yaf/yaf_controller.h"
+#include "ext/yaf/yaf_action.h"
+#include "ext/yaf/views/yaf_view_interface.h"
+#include "ext/yaf/yaf_plugin.h"
+#include "ext/yaf/yaf_request.h"
+#include "ext/yaf/yaf_response.h"
+#include "ext/yaf/routes/yaf_route_interface.h"
 
 /* If you declare any globals in php_yaf_ext.h uncomment this:
 ZEND_DECLARE_MODULE_GLOBALS(yaf_ext)
@@ -90,9 +99,15 @@ static void php_yaf_ext_init_globals(zend_yaf_ext_globals *yaf_ext_globals)
 PHP_MINIT_FUNCTION(yaf_ext)
 {
     if (YAF_G(use_namespace)) {
+        zend_register_class_alias("Yaf\\AbstractBootstrap", yaf_bootstrap_ce);
+        zend_register_class_alias("Yaf\\AbstractConfig", yaf_config_ce);
         zend_register_class_alias("Yaf\\AbstractController", yaf_controller_ce);
-    } else {
-        zend_register_class_alias("Yaf_AbstractController", yaf_controller_ce);
+        zend_register_class_alias("Yaf\\AbstractAction", yaf_action_ce);
+        zend_register_class_alias("Yaf\\ViewInterface", yaf_view_interface_ce);
+        zend_register_class_alias("Yaf\\AbstractPlugin", yaf_plugin_ce);
+        zend_register_class_alias("Yaf\\AbstractRequest", yaf_request_ce);
+        zend_register_class_alias("Yaf\\AbstractResponse", yaf_response_ce);
+        zend_register_class_alias("Yaf\\RouteInterface", yaf_route_ce);
     }
 
 	return SUCCESS;
