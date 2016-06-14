@@ -125,7 +125,7 @@ PHP_METHOD(yafext_controller, display) {
 
 static zend_function_entry yafext_plugin_methods[] = {
     PHP_ME(yafext_plugin, preDispatch, plugin_arginfo, ZEND_ACC_PUBLIC)
-    PHP_ME(yafext_plugin, postDispatch, plugin_arg, ZEND_ACC_PUBLIC)
+    PHP_ME(yafext_plugin, postDispatch, plugin_arginfo, ZEND_ACC_PUBLIC)
     {NULL, NULL, NULL}
 };
 
