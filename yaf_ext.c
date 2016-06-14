@@ -45,6 +45,8 @@ ZEND_DECLARE_MODULE_GLOBALS(yaf_ext)
 /* True global resources - no need for thread safety here */
 static int le_yaf_ext;
 
+zend_class_entry *yafext_controller_ce;
+
 /* {{{ PHP_INI
  */
 /* Remove comments and fill if you need to have entries in php.ini
@@ -82,6 +84,9 @@ PHP_FUNCTION(confirm_yaf_ext_compiled)
    follow this convention for the convenience of others editing your code.
 */
 
+static zend_function_entry yafext_controller_methods[] = {
+    {NULL, NULL, NULL}
+};
 
 /* {{{ php_yaf_ext_init_globals
  */
@@ -98,7 +103,11 @@ static void php_yaf_ext_init_globals(zend_yaf_ext_globals *yaf_ext_globals)
  */
 PHP_MINIT_FUNCTION(yaf_ext)
 {
+    zend_class_entry ce;
+
     if (YAF_G(use_namespace)) {
+        INIT_CLASS_ENTRY(ce, "Yafext\\AbstractController", yafext_controller_methods);
+
         zend_register_class_alias("Yaf\\AbstractBootstrap", yaf_bootstrap_ce);
         zend_register_class_alias("Yaf\\AbstractConfig", yaf_config_ce);
         zend_register_class_alias("Yaf\\AbstractController", yaf_controller_ce);
@@ -108,7 +117,12 @@ PHP_MINIT_FUNCTION(yaf_ext)
         zend_register_class_alias("Yaf\\AbstractRequest", yaf_request_ce);
         zend_register_class_alias("Yaf\\AbstractResponse", yaf_response_ce);
         zend_register_class_alias("Yaf\\RouteInterface", yaf_route_ce);
+    } else {
+        INIT_CLASS_ENTRY(ce, "Yafext_AbstractController", yafext_controller_methods);
     }
+
+    yafext_controller_ce = zend_register_internal_class_ex(&ce, yaf_controller_ce, NULL TSRMLS_CC);
+    yafext_controller_ce->ce_flags |= ZEND_ACC_EXPLICIT_ABSTRACT_CLASS;
 
 	return SUCCESS;
 }
