@@ -45,7 +45,30 @@ ZEND_DECLARE_MODULE_GLOBALS(yaf_ext)
 /* True global resources - no need for thread safety here */
 static int le_yaf_ext;
 
+zend_class_entry *yafext_plugin_ce;
 zend_class_entry *yafext_controller_ce;
+
+ZEND_BEGIN_ARG_INFO_EX(plugin_arginfo, 0, 0, 2)
+ZEND_ARG_OBJ_INFO(0, request, Yaf_Request_Abstract, 0)
+ZEND_ARG_OBJ_INFO(0, response, Yaf_Response_Abstract, 0)
+ZEND_END_ARG_INFO()
+
+#ifdef YAF_HAVE_NAMESPACE
+ZEND_BEGIN_ARG_INFO_EX(plugin_arginfo_ns, 0, 0, 2)
+ZEND_ARG_OBJ_INFO(0, request, Yaf\\Request_Abstract, 0)
+ZEND_ARG_OBJ_INFO(0, response, Yaf\\Response_Abstract, 0)
+ZEND_END_ARG_INFO()
+#endif
+
+ZEND_BEGIN_ARG_INFO_EX(controller_render_arginfo, 0, 0, 1)
+ZEND_ARG_INFO(0, tpl)
+ZEND_ARG_ARRAY_INFO(0, parameters, 1)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(controller_display_arginfo, 0, 0, 1)
+ZEND_ARG_INFO(0, tpl)
+ZEND_ARG_ARRAY_INFO(0, parameters, 1)
+ZEND_END_ARG_INFO()
 
 /* {{{ PHP_INI
  */
@@ -84,7 +107,39 @@ PHP_FUNCTION(confirm_yaf_ext_compiled)
    follow this convention for the convenience of others editing your code.
 */
 
+PHP_METHOD(yafext_plugin, preDispatch) {
+    RETURN_TRUE;
+}
+
+PHP_METHOD(yafext_plugin, postDispatch) {
+    RETURN_TRUE;
+}
+
+PHP_METHOD(yafext_controller, render) {
+    RETURN_TRUE;
+}
+
+PHP_METHOD(yafext_controller, display) {
+    RETURN_TRUE;
+}
+
+static zend_function_entry yafext_plugin_methods[] = {
+    PHP_ME(yafext_plugin, preDispatch, plugin_arginfo, ZEND_ACC_PUBLIC)
+    PHP_ME(yafext_plugin, postDispatch, plugin_arg, ZEND_ACC_PUBLIC)
+    {NULL, NULL, NULL}
+};
+
+#ifdef YAF_HAVE_NAMESPACE
+static zend_function_entry yafext_plugin_methods_ns[] = {
+    PHP_ME(yafext_plugin, preDispatch, plugin_arginfo_ns, ZEND_ACC_PUBLIC)
+    PHP_ME(yafext_plugin, postDispatch, plugin_arginfo_ns, ZEND_ACC_PUBLIC)
+    {NULL, NULL, NULL}
+};
+#endif
+
 static zend_function_entry yafext_controller_methods[] = {
+    PHP_ME(yafext_controller, render, controller_render_arginfo, ZEND_ACC_PROTECTED)
+    PHP_ME(yafext_controller, display, controller_display_arginfo, ZEND_ACC_PROTECTED)
     {NULL, NULL, NULL}
 };
 
@@ -106,7 +161,11 @@ PHP_MINIT_FUNCTION(yaf_ext)
     zend_class_entry ce;
 
     if (YAF_G(use_namespace)) {
+        INIT_CLASS_ENTRY(ce, "Yafext\\Plugin", yafext_plugin_methods_ns);
+        yafext_plugin_ce = zend_register_internal_class_ex(&ce, yaf_plugin_ce, NULL TSRMLS_CC);
+
         INIT_CLASS_ENTRY(ce, "Yafext\\AbstractController", yafext_controller_methods);
+        yafext_controller_ce = zend_register_internal_class_ex(&ce, yaf_controller_ce, NULL TSRMLS_CC);
 
         zend_register_class_alias("Yaf\\AbstractBootstrap", yaf_bootstrap_ce);
         zend_register_class_alias("Yaf\\AbstractConfig", yaf_config_ce);
@@ -118,10 +177,13 @@ PHP_MINIT_FUNCTION(yaf_ext)
         zend_register_class_alias("Yaf\\AbstractResponse", yaf_response_ce);
         zend_register_class_alias("Yaf\\RouteInterface", yaf_route_ce);
     } else {
+        INIT_CLASS_ENTRY(ce, "Yafext_Plugin", yafext_plugin_methods);
+        yafext_plugin_ce = zend_register_internal_class_ex(&ce, yaf_plugin_ce, NULL TSRMLS_CC);
+
         INIT_CLASS_ENTRY(ce, "Yafext_AbstractController", yafext_controller_methods);
+        yafext_controller_ce = zend_register_internal_class_ex(&ce, yaf_controller_ce, NULL TSRMLS_CC);
     }
 
-    yafext_controller_ce = zend_register_internal_class_ex(&ce, yaf_controller_ce, NULL TSRMLS_CC);
     yafext_controller_ce->ce_flags |= ZEND_ACC_EXPLICIT_ABSTRACT_CLASS;
 
 	return SUCCESS;
