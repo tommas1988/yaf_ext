@@ -39,15 +39,9 @@ extern zend_module_entry yaf_ext_module_entry;
 
 #endif
 
-/* 
-  	Declare any global variables you may need between the BEGIN
-	and END macros here:     
-
 ZEND_BEGIN_MODULE_GLOBALS(yaf_ext)
-	long  global_value;
-	char *global_string;
+	char *req_action;
 ZEND_END_MODULE_GLOBALS(yaf_ext)
-*/
 
 /* In every utility function you add that needs to use variables 
    in php_yaf_ext_globals, call TSRMLS_FETCH(); after declaring other 

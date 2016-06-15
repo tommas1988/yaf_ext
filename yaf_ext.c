@@ -22,9 +22,12 @@
 #include "config.h"
 #endif
 
+#include "string.h"
+
 #include "php.h"
 #include "php_ini.h"
 #include "ext/standard/info.h"
+#include "Zend/zend_interfaces.h"
 #include "php_yaf_ext.h"
 #include "php_yaf.h"
 #include "yaf_namespace.h"
@@ -38,9 +41,7 @@
 #include "yaf_response.h"
 #include "routes/yaf_route_interface.h"
 
-/* If you declare any globals in php_yaf_ext.h uncomment this:
 ZEND_DECLARE_MODULE_GLOBALS(yaf_ext)
-*/
 
 /* True global resources - no need for thread safety here */
 static int le_yaf_ext;
@@ -108,18 +109,106 @@ PHP_FUNCTION(confirm_yaf_ext_compiled)
 */
 
 PHP_METHOD(yafext_plugin, preDispatch) {
+    zval *request, *response, *action, *new_action;
+    zend_class_entry *request_ce;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "oo", &request, &response) == FAILURE) {
+        RETURN_FALSE;
+    }
+
+    request_ce = Z_OBJCE_P(request);
+    action = zend_read_property(request_ce, request, ZEND_STRL(YAF_REQUEST_PROPERTY_NAME_ACTION), 1 TSRMLS_CC);
+
+    const char *delim = "-";
+    char *begin = Z_STRVAL_P(action), *new_action_str = NULL;
+    size_t copied = 0, n;
+    for (size_t i = 0; i < Z_STRLEN_P(action); i++) {
+        if (!strchr(delim, Z_STRVAL_P(action)[i]) && i != Z_STRLEN_P(action)-1) {
+            continue;
+        }
+
+        if (begin-Z_STRVAL_P(action)+1 != i) {
+            if (!new_action_str) {
+                new_action_str = emalloc(Z_STRLEN_P(action));
+            }
+
+            n = &(Z_STRVAL_P(action)[i]) - begin;
+            memcpy(new_action_str+copied, begin, n);
+
+            copied += n;
+            begin += n;
+        }
+
+        begin++;
+    }
+
+    if (!new_action_str) {
+        RETURN_TRUE;
+        return;
+    }
+
+    new_action_str[copied+1]='\0';
+
+    if (Z_REFCOUNT_P(action) == 1) {
+        new_action = action;
+    } else {
+        Z_DELREF_P(action);
+        MAKE_STD_ZVAL(new_action);
+    }
+
+    ZVAL_STRINGL(new_action, new_action_str, copied, 0);
+    zend_update_property(request_ce, request, ZEND_STRL(YAF_REQUEST_PROPERTY_NAME_ACTION), new_action TSRMLS_CC);
+
+    YAF_EXT_G(req_action) = new_action_str;
+
     RETURN_TRUE;
 }
 
 PHP_METHOD(yafext_plugin, postDispatch) {
+    if (YAF_EXT_G(req_action)) {
+        YAF_EXT_G(req_action) = NULL;
+    }
+
     RETURN_TRUE;
 }
 
 PHP_METHOD(yafext_controller, render) {
+    zval *tpl, *var_array = NULL;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|z", &tpl, &var_array) == FAILURE) {
+        return;
+    }
+
+    if (YAF_EXT_G(req_action)) {
+        ZVAL_STRING(tpl, YAF_EXT_G(req_action), 0);
+    }
+
+    if (var_array) {
+        zend_call_method_with_2_params(&getThis(), yaf_controller_ce, NULL, "render", NULL, tpl, var_array);
+    } else {
+        zend_call_method_with_1_params(&getThis(), yaf_controller_ce, NULL, "render", NULL, tpl);
+    }
+
     RETURN_TRUE;
 }
 
 PHP_METHOD(yafext_controller, display) {
+    zval *tpl, *var_array = NULL;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|z", &tpl, &var_array) == FAILURE) {
+        return;
+    }
+
+    if (YAF_EXT_G(req_action)) {
+        ZVAL_STRING(tpl, YAF_EXT_G(req_action), 0);
+    }
+
+    if (var_array) {
+        zend_call_method_with_2_params(&getThis(), yaf_controller_ce, NULL, "display", NULL, tpl, var_array);
+    } else {
+        zend_call_method_with_1_params(&getThis(), yaf_controller_ce, NULL, "display", NULL, tpl);
+    }
+
     RETURN_TRUE;
 }
 
@@ -197,7 +286,11 @@ PHP_MSHUTDOWN_FUNCTION(yaf_ext)
 	/* uncomment this line if you have INI entries
 	UNREGISTER_INI_ENTRIES();
 	*/
-	return SUCCESS;
+    if (YAF_EXT_G(req_action)) {
+        efree(YAF_EXT_G(req_action));
+    }
+
+    return SUCCESS;
 }
 /* }}} */
 
@@ -206,6 +299,7 @@ PHP_MSHUTDOWN_FUNCTION(yaf_ext)
  */
 PHP_RINIT_FUNCTION(yaf_ext)
 {
+    YAF_EXT_G(req_action) = NULL;
 	return SUCCESS;
 }
 /* }}} */
