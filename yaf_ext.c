@@ -129,7 +129,7 @@ PHP_METHOD(yafext_plugin, preDispatch) {
 
         if (begin-Z_STRVAL_P(action)+1 != i) {
             if (!new_action_str) {
-                new_action_str = emalloc(Z_STRLEN_P(action));
+                new_action_str = emalloc(sizeof(char) * Z_STRLEN_P(action));
             }
 
             n = &(Z_STRVAL_P(action)[i]) - begin;
@@ -172,44 +172,28 @@ PHP_METHOD(yafext_plugin, postDispatch) {
     RETURN_TRUE;
 }
 
+#define CALL_YAF_CONTROLLER_RENDER_DISPLAY(name) zval *tpl, *var_array = NULL, *ret = NULL; \
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|z", &tpl, &var_array) == FAILURE) { \
+        return; \
+    } \
+    if (YAF_EXT_G(req_action)) { \
+        ZVAL_STRING(tpl, YAF_EXT_G(req_action), 0); \
+    } \
+    if (var_array) { \
+        zend_call_method_with_2_params(&getThis(), yaf_controller_ce, NULL, #name, &ret, tpl, var_array); \
+    } else { \
+        zend_call_method_with_1_params(&getThis(), yaf_controller_ce, NULL, #name, &ret, tpl); \
+    } \
+    zval_ptr_dtor(return_value_ptr); \
+    *return_value_ptr = ret; \
+    RETURN_TRUE; \
+
 PHP_METHOD(yafext_controller, render) {
-    zval *tpl, *var_array = NULL;
-
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|z", &tpl, &var_array) == FAILURE) {
-        return;
-    }
-
-    if (YAF_EXT_G(req_action)) {
-        ZVAL_STRING(tpl, YAF_EXT_G(req_action), 0);
-    }
-
-    if (var_array) {
-        zend_call_method_with_2_params(&getThis(), yaf_controller_ce, NULL, "render", NULL, tpl, var_array);
-    } else {
-        zend_call_method_with_1_params(&getThis(), yaf_controller_ce, NULL, "render", NULL, tpl);
-    }
-
-    RETURN_TRUE;
+    CALL_YAF_CONTROLLER_RENDER_DISPLAY(render)
 }
 
 PHP_METHOD(yafext_controller, display) {
-    zval *tpl, *var_array = NULL;
-
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|z", &tpl, &var_array) == FAILURE) {
-        return;
-    }
-
-    if (YAF_EXT_G(req_action)) {
-        ZVAL_STRING(tpl, YAF_EXT_G(req_action), 0);
-    }
-
-    if (var_array) {
-        zend_call_method_with_2_params(&getThis(), yaf_controller_ce, NULL, "display", NULL, tpl, var_array);
-    } else {
-        zend_call_method_with_1_params(&getThis(), yaf_controller_ce, NULL, "display", NULL, tpl);
-    }
-
-    RETURN_TRUE;
+    CALL_YAF_CONTROLLER_RENDER_DISPLAY(display)
 }
 
 static zend_function_entry yafext_plugin_methods[] = {
