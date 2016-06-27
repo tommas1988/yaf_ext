@@ -109,8 +109,9 @@ PHP_FUNCTION(confirm_yaf_ext_compiled)
 */
 
 PHP_METHOD(yafext_plugin, preDispatch) {
-    zval *request, *response, *action, *new_action;
+    zval *request, *response, *action, *z_new_action;
     zend_class_entry *request_ce;
+    char *action_dup;
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "oo", &request, &response) == FAILURE) {
         RETURN_FALSE;
@@ -119,53 +120,53 @@ PHP_METHOD(yafext_plugin, preDispatch) {
     request_ce = Z_OBJCE_P(request);
     action = zend_read_property(request_ce, request, ZEND_STRL(YAF_REQUEST_PROPERTY_NAME_ACTION), 1 TSRMLS_CC);
 
-    const char *delim = "-";
-    char *begin = Z_STRVAL_P(action), *new_action_str = NULL;
-    size_t copied = 0, n;
-    for (size_t i = 0; i < Z_STRLEN_P(action); i++) {
-        if (!strchr(delim, Z_STRVAL_P(action)[i]) && i != Z_STRLEN_P(action)-1) {
-            continue;
+    char *needle = "-", *new_action = NULL;
+    char *b = Z_STRVAL_P(action), *p;
+    size_t n, len = 0;
+    while (p = strpbrk(b, needle)) {
+        if (!new_action) {
+            new_action = emalloc(Z_STRLEN_P(action));
         }
 
-        if (begin-Z_STRVAL_P(action)+1 != i) {
-            if (!new_action_str) {
-                new_action_str = emalloc(sizeof(char) * Z_STRLEN_P(action));
-            }
+        n = p - b;
+        memcpy(new_action+len, b, n);
+        len += n;
 
-            n = &(Z_STRVAL_P(action)[i]) - begin;
-            memcpy(new_action_str+copied, begin, n);
-
-            copied += n;
-            begin += n;
+        if (b == Z_STRVAL_P(action)+Z_STRLEN_P(action)-1) {
+            break;
         }
 
-        begin++;
+        b += (n+1);
     }
 
-    if (!new_action_str) {
+    if (new_action) {
+        if (b != Z_STRVAL_P(action)+Z_STRLEN_P(action)-1) {
+            n = Z_STRVAL_P(action)+Z_STRLEN_P(action)-b;
+            memcpy(new_action+len, b, n);
+            len += n;
+        }
+
+        new_action[len] = '\0';
+    } else {
         RETURN_TRUE;
         return;
     }
 
-    new_action_str[copied+1]='\0';
+    MAKE_STD_ZVAL(z_new_action);
+    ZVAL_STRINGL(z_new_action, new_action, len, 0);
 
-    if (Z_REFCOUNT_P(action) == 1) {
-        new_action = action;
-    } else {
-        Z_DELREF_P(action);
-        MAKE_STD_ZVAL(new_action);
-    }
+    action_dup = estrndup(Z_STRVAL_P(action), Z_STRLEN_P(action));
+    zend_update_property(request_ce, request, ZEND_STRL(YAF_REQUEST_PROPERTY_NAME_ACTION), z_new_action TSRMLS_CC);
 
-    ZVAL_STRINGL(new_action, new_action_str, copied, 0);
-    zend_update_property(request_ce, request, ZEND_STRL(YAF_REQUEST_PROPERTY_NAME_ACTION), new_action TSRMLS_CC);
-
-    YAF_EXT_G(req_action) = new_action_str;
+    YAF_EXT_G(req_action) = action_dup;
 
     RETURN_TRUE;
 }
 
 PHP_METHOD(yafext_plugin, postDispatch) {
+    /* Why not trigger postDispatch */
     if (YAF_EXT_G(req_action)) {
+        efree(YAF_EXT_G(req_action));
         YAF_EXT_G(req_action) = NULL;
     }
 
@@ -271,7 +272,7 @@ PHP_MSHUTDOWN_FUNCTION(yaf_ext)
 	UNREGISTER_INI_ENTRIES();
 	*/
     if (YAF_EXT_G(req_action)) {
-        efree(YAF_EXT_G(req_action));
+        /* efree(YAF_EXT_G(req_action)); */
     }
 
     return SUCCESS;
@@ -293,6 +294,9 @@ PHP_RINIT_FUNCTION(yaf_ext)
  */
 PHP_RSHUTDOWN_FUNCTION(yaf_ext)
 {
+    if (YAF_EXT_G(req_action)) {
+        /* efree(YAF_EXT_G(req_action)); */
+    }
 	return SUCCESS;
 }
 /* }}} */
