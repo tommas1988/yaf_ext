@@ -28,7 +28,9 @@
 #include "php_ini.h"
 #include "ext/standard/info.h"
 #include "Zend/zend_interfaces.h"
+
 #include "php_yaf_ext.h"
+#include "yaf_ext_view.h"
 #include "php_yaf.h"
 #include "yaf_namespace.h"
 #include "yaf_bootstrap.h"
@@ -173,7 +175,8 @@ PHP_METHOD(yafext_plugin, postDispatch) {
     RETURN_TRUE;
 }
 
-#define CALL_YAF_CONTROLLER_RENDER_DISPLAY(name) zval *tpl, *var_array = NULL, *ret = NULL; \
+#define CALL_YAF_CONTROLLER_RENDER_DISPLAY(name) \
+    zval *tpl, *var_array = NULL, *ret = NULL;                          \
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|z", &tpl, &var_array) == FAILURE) { \
         return; \
     } \
@@ -259,6 +262,8 @@ PHP_MINIT_FUNCTION(yaf_ext)
     }
 
     yafext_controller_ce->ce_flags |= ZEND_ACC_EXPLICIT_ABSTRACT_CLASS;
+
+    yafext_register_view_class();
 
 	return SUCCESS;
 }
