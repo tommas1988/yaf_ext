@@ -1,9 +1,9 @@
-PHP_ARG_WITH(yext, for yext support,
-[  --with-yext           Include yext support])
+PHP_ARG_WITH(yaf-dir, for yext support,
+[  --with-yaf-dir=          Set yaf directory])
 
-if test "$PHP_YEXT" != "no"; then
-  if test -r $PHP_YEXT/php_yaf.h; then
-    YAF_DIR=$PHP_YEXT
+if test "$PHP_YAF_DIR" != "no"; then
+  if test -r $PHP_YAF_DIR/php_yaf.h; then
+    YAF_DIR=$PHP_YAF_DIR
   fi
 
   if test -z "$YAF_DIR"; then
