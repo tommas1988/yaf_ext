@@ -172,8 +172,6 @@ PHP_METHOD(yext_plugin, postDispatch) {
 }
 
 /*
- * TODO: return the value returned by parent render or display method
- *
  * TOTO: Whether or not should define this macro, since it`s hard to debug macro
  *
  * TODO: fix the bug: view template will be action name resolved by url,
@@ -181,7 +179,7 @@ PHP_METHOD(yext_plugin, postDispatch) {
  */
 #define CALL_YAF_CONTROLLER_RENDER_DISPLAY(name)                        \
     zval *action;                                                       \
-    zval *var_array = NULL, *ret = NULL;                                \
+    zval *var_array = NULL;                                             \
                                                                         \
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|z", &action, &var_array) == FAILURE) { \
         return;                                                         \
@@ -192,22 +190,19 @@ PHP_METHOD(yext_plugin, postDispatch) {
         action = YEXT_G(raw_action);                                    \
     }                                                                   \
                                                                         \
-    ret = NULL;                                                         \
     if (var_array) {                                                    \
-        zend_call_method_with_2_params(&getThis(), yaf_controller_ce, NULL, #name, &ret, action, var_array); \
+        zend_call_method_with_2_params(&getThis(), yaf_controller_ce, NULL, #name, return_value_ptr, action, var_array); \
     } else {                                                            \
-        zend_call_method_with_1_params(&getThis(), yaf_controller_ce, NULL, #name, &ret, action); \
+        zend_call_method_with_1_params(&getThis(), yaf_controller_ce, NULL, #name, return_value_ptr, action); \
     }                                                                   \
                                                                         \
-    zval_ptr_dtor(return_value_ptr);                                    \
-                                                                        \
-    if (!ret) {                                                         \
-        RETURN_FALSE;                                                   \
-        return;                                                         \
+    if (*return_value_ptr) {                                            \
+        /* Free this function`s return_value */                         \
+        efree(return_value);                                            \
+    } else {                                                            \
+        /* Put this function`s return_value back to the pointer and will be freed by then Zend Api when exception occurs */ \
+        *return_value_ptr = return_value;                               \
     }                                                                   \
-                                                                        \
-    *return_value_ptr = ret;                                            \
-    RETURN_TRUE;                                                        \
 
 PHP_METHOD(yext_controller, render) {
     CALL_YAF_CONTROLLER_RENDER_DISPLAY(render)
