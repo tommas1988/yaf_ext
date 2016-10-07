@@ -127,7 +127,7 @@ PHP_METHOD(yext_plugin, preDispatch) {
     char *last = Z_STRVAL_P(raw_action), *curr = NULL;
 
     /* set first char to null byte */
-    action_str = '\0';
+    *action_str = '\0';
 
     while (curr = strpbrk(last, seps)) {
         if (last == curr) { /* increment pointor when the first char is seperator */
@@ -142,13 +142,19 @@ PHP_METHOD(yext_plugin, preDispatch) {
     }
 
     if (last != Z_STRVAL_P(raw_action)) {
+        /* put the last part in action name */
+        strcat(action_str, last);
+
         MAKE_STD_ZVAL(action);
         ZVAL_STRING(action, action_str, 0);
 
+        /* increment ref count to prevent raw_action from being freed when trigger zend_update_property */
+        Z_ADDREF_P(raw_action);
         zend_update_property(request_ce, request, ZEND_STRL(YAF_REQUEST_PROPERTY_NAME_ACTION), action TSRMLS_CC);
 
-        Z_ADDREF_P(raw_action);
         YEXT_G(raw_action) = raw_action;
+    } else {
+        efree(action_str);
     }
 
     RETURN_TRUE;
@@ -157,7 +163,8 @@ PHP_METHOD(yext_plugin, preDispatch) {
 PHP_METHOD(yext_plugin, postDispatch) {
     /* Why not trigger postDispatch */
     if (YEXT_G(raw_action)) {
-        efree(YEXT_G(raw_action));
+        /* decrement ref count or free the memory */
+        Z_DELREF_P(YEXT_G(raw_action));
         YEXT_G(raw_action) = NULL;
     }
 
@@ -169,19 +176,31 @@ PHP_METHOD(yext_plugin, postDispatch) {
  * regardless of pass a different template explicitly
  */
 #define CALL_YAF_CONTROLLER_RENDER_DISPLAY(name)                        \
-    zval *tpl, *var_array = NULL, *ret = NULL;                          \
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|z", &tpl, &var_array) == FAILURE) { \
+    zval *action;                                                       \
+    zval *var_array = NULL, *ret = NULL;                                \
+                                                                        \
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|z", &action, &var_array) == FAILURE) { \
         return;                                                         \
     }                                                                   \
+                                                                        \
     if (YEXT_G(raw_action)) {                                           \
-        tpl = YEXT_G(raw_action);                                       \
+        action = YEXT_G(raw_action);                                    \
     }                                                                   \
+                                                                        \
+    ret = NULL;                                                         \
     if (var_array) {                                                    \
-        zend_call_method_with_2_params(&getThis(), yaf_controller_ce, NULL, #name, &ret, tpl, var_array); \
+        zend_call_method_with_2_params(&getThis(), yaf_controller_ce, NULL, #name, &ret, action, var_array); \
     } else {                                                            \
-        zend_call_method_with_1_params(&getThis(), yaf_controller_ce, NULL, #name, &ret, tpl); \
+        zend_call_method_with_1_params(&getThis(), yaf_controller_ce, NULL, #name, &ret, action); \
     }                                                                   \
+                                                                        \
     zval_ptr_dtor(return_value_ptr);                                    \
+                                                                        \
+    if (!ret) {                                                         \
+        RETURN_FALSE;                                                   \
+        return;                                                         \
+    }                                                                   \
+                                                                        \
     *return_value_ptr = ret;                                            \
     RETURN_TRUE;                                                        \
 

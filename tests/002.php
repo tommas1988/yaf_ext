@@ -10,7 +10,7 @@ $config = array(
 	),
 );
 
-class IndexController extends Yaf_Controller_Abstract
+class IndexController extends Yext_AbstractController
 {
     public function longNameAction()
     {
@@ -26,12 +26,13 @@ class IndexController extends Yaf_Controller_Abstract
     // }
 }
 
-$reqStr = '/module/index/action';
+$reqStr = '/module/index/long-name';
 $app = new Yaf_Application($config);
 $request = new Yaf_Request_Http($reqStr);
 
 try {
-  $app->getDispatcher()->returnResponse(false)->dispatch($request);
+    $app->getDispatcher()->registerPlugin(new Yext_Plugin());
+    $app->getDispatcher()->returnResponse(false)->dispatch($request);
 } catch (Yaf_Exception $e) {
-  echo $e->getMessage(), "\n";
+    echo $e->getMessage(), "\n";
 }
