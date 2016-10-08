@@ -18,20 +18,20 @@
 
 /* $Id$ */
 
-#ifndef PHP_YAF_EXT_H
-#define PHP_YAF_EXT_H
+#ifndef PHP_YEXT_H
+#define PHP_YEXT_H
 
-extern zend_module_entry yaf_ext_module_entry;
-#define phpext_yaf_ext_ptr &yaf_ext_module_entry
+extern zend_module_entry yext_module_entry;
+#define phpext_yext_ptr &yext_module_entry
 
-#define PHP_YAF_EXT_VERSION "0.1.0" /* Replace with version number for your extension */
+#define PHP_YEXT_VERSION "0.1.0" /* Replace with version number for your extension */
 
 #ifdef PHP_WIN32
-#	define PHP_YAF_EXT_API __declspec(dllexport)
+#	define PHP_YEXT_API __declspec(dllexport)
 #elif defined(__GNUC__) && __GNUC__ >= 4
-#	define PHP_YAF_EXT_API __attribute__ ((visibility("default")))
+#	define PHP_YEXT_API __attribute__ ((visibility("default")))
 #else
-#	define PHP_YAF_EXT_API
+#	define PHP_YEXT_API
 #endif
 
 #ifdef ZTS
@@ -39,27 +39,27 @@ extern zend_module_entry yaf_ext_module_entry;
 
 #endif
 
-ZEND_BEGIN_MODULE_GLOBALS(yaf_ext)
+ZEND_BEGIN_MODULE_GLOBALS(yext)
 	char *req_action;
-ZEND_END_MODULE_GLOBALS(yaf_ext)
+ZEND_END_MODULE_GLOBALS(yext)
 
 /* In every utility function you add that needs to use variables 
-   in php_yaf_ext_globals, call TSRMLS_FETCH(); after declaring other 
+   in php_yext_globals, call TSRMLS_FETCH(); after declaring other 
    variables used by that function, or better yet, pass in TSRMLS_CC
    after the last function argument and declare your utility function
    with TSRMLS_DC after the last declared argument.  Always refer to
-   the globals in your function as YAF_EXT_G(variable).  You are 
+   the globals in your function as YEXT_G(variable).  You are 
    encouraged to rename these macros something shorter, see
    examples in any other php module directory.
 */
 
 #ifdef ZTS
-#define YAF_EXT_G(v) TSRMG(yaf_ext_globals_id, zend_yaf_ext_globals *, v)
+#define YEXT_G(v) TSRMG(yext_globals_id, zend_yext_globals *, v)
 #else
-#define YAF_EXT_G(v) (yaf_ext_globals.v)
+#define YEXT_G(v) (yext_globals.v)
 #endif
 
-#endif	/* PHP_YAF_EXT_H */
+#endif	/* PHP_YEXT_H */
 
 
 /*

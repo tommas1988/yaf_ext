@@ -1,10 +1,10 @@
 <?php
 $br = (php_sapi_name() == "cli")? "":"<br>";
 
-if(!extension_loaded('yaf_ext')) {
-	dl('yaf_ext.' . PHP_SHLIB_SUFFIX);
+if(!extension_loaded('yext')) {
+	dl('yext.' . PHP_SHLIB_SUFFIX);
 }
-$module = 'yaf_ext';
+$module = 'yext';
 $functions = get_extension_funcs($module);
 echo "Functions available in the test extension:$br\n";
 foreach($functions as $func) {

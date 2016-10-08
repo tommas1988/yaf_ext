@@ -1,9 +1,9 @@
-PHP_ARG_WITH(yaf_ext, for yaf_ext support,
-[  --with-yaf_ext           Include yaf_ext support])
+PHP_ARG_WITH(yext, for yext support,
+[  --with-yext           Include yext support])
 
-if test "$PHP_YAF_EXT" != "no"; then
-  if test -r $PHP_YAF_EXT/php_yaf.h; then
-    YAF_DIR=$PHP_YAF_EXT
+if test "$PHP_YEXT" != "no"; then
+  if test -r $PHP_YEXT/php_yaf.h; then
+    YAF_DIR=$PHP_YEXT
   fi
 
   if test -z "$YAF_DIR"; then
@@ -13,6 +13,9 @@ if test "$PHP_YAF_EXT" != "no"; then
 
   PHP_ADD_INCLUDE($YAF_DIR)
 
-  PHP_NEW_EXTENSION(yaf_ext, yaf_ext.c, $ext_shared)
-  PHP_ADD_EXTENSION_DEP(yaf_ext, yaf)
+  PHP_NEW_EXTENSION(yext,
+        yext.c          \
+        yext_view.c,
+        $ext_shared)
+  PHP_ADD_EXTENSION_DEP(yext, yaf)
 fi

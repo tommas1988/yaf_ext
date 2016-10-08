@@ -1,10 +1,10 @@
 --TEST--
-Check for yaf_ext presence
+Check for yext presence
 --SKIPIF--
-<?php if (!extension_loaded("yaf_ext")) print "skip"; ?>
+<?php if (!extension_loaded("yext")) print "skip"; ?>
 --FILE--
-<?php 
-echo "yaf_ext extension is available";
+<?php
+echo "yext extension is available";
 /*
 	you can add regression tests for your extension here
 
@@ -18,4 +18,4 @@ echo "yaf_ext extension is available";
 */
 ?>
 --EXPECT--
-yaf_ext extension is available
+yext extension is available
