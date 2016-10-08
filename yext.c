@@ -142,13 +142,13 @@ PHP_METHOD(yext_plugin, preDispatch) {
     }
 
     if (last != Z_STRVAL_P(raw_action)) {
-        size_t action_str_len = strlen(action_str);
-
         MAKE_STD_ZVAL(action);
-        ZVAL_STRINGL(action, action_str, action_str_len, 0);
+        ZVAL_STRING(action, action_str, 0);
 
         zend_update_property(request_ce, request, ZEND_STRL(YAF_REQUEST_PROPERTY_NAME_ACTION), action TSRMLS_CC);
-        YEXT_G(req_action) = estrndup(action_str, action_str_len);
+
+        Z_ADDREF_P(raw_action);
+        YEXT_G(raw_action) = raw_action;
     }
 
     RETURN_TRUE;
@@ -156,21 +156,25 @@ PHP_METHOD(yext_plugin, preDispatch) {
 
 PHP_METHOD(yext_plugin, postDispatch) {
     /* Why not trigger postDispatch */
-    if (YEXT_G(req_action)) {
-        efree(YEXT_G(req_action));
-        YEXT_G(req_action) = NULL;
+    if (YEXT_G(raw_action)) {
+        efree(YEXT_G(raw_action));
+        YEXT_G(raw_action) = NULL;
     }
 
     RETURN_TRUE;
 }
 
+/*
+ * TODO: fix the bug: view template will be action name resolved by url,
+ * regardless of pass a different template explicitly
+ */
 #define CALL_YAF_CONTROLLER_RENDER_DISPLAY(name)                        \
     zval *tpl, *var_array = NULL, *ret = NULL;                          \
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|z", &tpl, &var_array) == FAILURE) { \
         return;                                                         \
     }                                                                   \
-    if (YEXT_G(req_action)) {                                           \
-        ZVAL_STRING(tpl, YEXT_G(req_action), 0);                        \
+    if (YEXT_G(raw_action)) {                                           \
+        tpl = YEXT_G(raw_action);                                       \
     }                                                                   \
     if (var_array) {                                                    \
         zend_call_method_with_2_params(&getThis(), yaf_controller_ce, NULL, #name, &ret, tpl, var_array); \
@@ -265,8 +269,8 @@ PHP_MSHUTDOWN_FUNCTION(yext)
 	/* uncomment this line if you have INI entries
 	UNREGISTER_INI_ENTRIES();
 	*/
-    if (YEXT_G(req_action)) {
-        /* efree(YEXT_G(req_action)); */
+    if (YEXT_G(raw_action)) {
+        /* efree(YEXT_G(raw_action)); */
     }
 
     return SUCCESS;
@@ -278,7 +282,7 @@ PHP_MSHUTDOWN_FUNCTION(yext)
  */
 PHP_RINIT_FUNCTION(yext)
 {
-    YEXT_G(req_action) = NULL;
+    YEXT_G(raw_action) = NULL;
 	return SUCCESS;
 }
 /* }}} */
@@ -288,8 +292,8 @@ PHP_RINIT_FUNCTION(yext)
  */
 PHP_RSHUTDOWN_FUNCTION(yext)
 {
-    if (YEXT_G(req_action)) {
-        /* efree(YEXT_G(req_action)); */
+    if (YEXT_G(raw_action)) {
+        /* efree(YEXT_G(raw_action)); */
     }
 	return SUCCESS;
 }

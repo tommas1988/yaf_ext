@@ -40,7 +40,7 @@ extern zend_module_entry yext_module_entry;
 #endif
 
 ZEND_BEGIN_MODULE_GLOBALS(yext)
-	char *req_action;
+	zval *raw_action;
 ZEND_END_MODULE_GLOBALS(yext)
 
 /* In every utility function you add that needs to use variables 
