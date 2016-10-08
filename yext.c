@@ -111,56 +111,45 @@ PHP_FUNCTION(confirm_yext_compiled)
 */
 
 PHP_METHOD(yext_plugin, preDispatch) {
-    zval *request, *response, *action, *z_new_action;
+    zval *request, *response, *raw_action, *action;
     zend_class_entry *request_ce;
-    char *action_dup;
 
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "oo", &request, &response) == FAILURE) {
         RETURN_FALSE;
     }
 
     request_ce = Z_OBJCE_P(request);
-    action = zend_read_property(request_ce, request, ZEND_STRL(YAF_REQUEST_PROPERTY_NAME_ACTION), 1 TSRMLS_CC);
+    raw_action = zend_read_property(request_ce, request, ZEND_STRL(YAF_REQUEST_PROPERTY_NAME_ACTION), 1 TSRMLS_CC);
 
-    char *needle = "-", *new_action = NULL;
-    char *b = Z_STRVAL_P(action), *p;
-    size_t n, len = 0;
-    while (p = strpbrk(b, needle)) {
-        if (!new_action) {
-            new_action = emalloc(Z_STRLEN_P(action));
+    /* TODO: long action name seperators will be configurable in yaf.long_action_seps */
+    const char *seps = "-";
+    char *action_str = emalloc(Z_STRLEN_P(raw_action));
+    char *last = Z_STRVAL_P(raw_action), *curr = NULL;
+
+    /* set first char to null byte */
+    action_str = '\0';
+
+    while (curr = strpbrk(last, seps)) {
+        if (last == curr) { /* increment pointor when the first char is seperator */
+            if (!++last) {      /* break when null charactor is encountered */
+                break;
+            }
+            continue;
         }
 
-        n = p - b;
-        memcpy(new_action+len, b, n);
-        len += n;
-
-        if (b == Z_STRVAL_P(action)+Z_STRLEN_P(action)-1) {
-            break;
-        }
-
-        b += (n+1);
+        strncat(action_str, last, curr-last);
+        last = curr + 1;
     }
 
-    if (new_action) {
-        if (b != Z_STRVAL_P(action)+Z_STRLEN_P(action)-1) {
-            n = Z_STRVAL_P(action)+Z_STRLEN_P(action)-b;
-            memcpy(new_action+len, b, n);
-            len += n;
-        }
+    if (last != Z_STRVAL_P(raw_action)) {
+        size_t action_str_len = strlen(action_str);
 
-        new_action[len] = '\0';
-    } else {
-        RETURN_TRUE;
-        return;
+        MAKE_STD_ZVAL(action);
+        ZVAL_STRINGL(action, action_str, action_str_len, 0);
+
+        zend_update_property(request_ce, request, ZEND_STRL(YAF_REQUEST_PROPERTY_NAME_ACTION), action TSRMLS_CC);
+        YEXT_G(req_action) = estrndup(action_str, action_str_len);
     }
-
-    MAKE_STD_ZVAL(z_new_action);
-    ZVAL_STRINGL(z_new_action, new_action, len, 0);
-
-    action_dup = estrndup(Z_STRVAL_P(action), Z_STRLEN_P(action));
-    zend_update_property(request_ce, request, ZEND_STRL(YAF_REQUEST_PROPERTY_NAME_ACTION), z_new_action TSRMLS_CC);
-
-    YEXT_G(req_action) = action_dup;
 
     RETURN_TRUE;
 }
