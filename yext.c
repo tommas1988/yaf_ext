@@ -164,22 +164,22 @@ PHP_METHOD(yext_plugin, postDispatch) {
     RETURN_TRUE;
 }
 
-#define CALL_YAF_CONTROLLER_RENDER_DISPLAY(name) \
+#define CALL_YAF_CONTROLLER_RENDER_DISPLAY(name)                        \
     zval *tpl, *var_array = NULL, *ret = NULL;                          \
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z|z", &tpl, &var_array) == FAILURE) { \
-        return; \
-    } \
-    if (YEXT_G(req_action)) { \
-        ZVAL_STRING(tpl, YEXT_G(req_action), 0); \
-    } \
-    if (var_array) { \
+        return;                                                         \
+    }                                                                   \
+    if (YEXT_G(req_action)) {                                           \
+        ZVAL_STRING(tpl, YEXT_G(req_action), 0);                        \
+    }                                                                   \
+    if (var_array) {                                                    \
         zend_call_method_with_2_params(&getThis(), yaf_controller_ce, NULL, #name, &ret, tpl, var_array); \
-    } else { \
+    } else {                                                            \
         zend_call_method_with_1_params(&getThis(), yaf_controller_ce, NULL, #name, &ret, tpl); \
-    } \
-    zval_ptr_dtor(return_value_ptr); \
-    *return_value_ptr = ret; \
-    RETURN_TRUE; \
+    }                                                                   \
+    zval_ptr_dtor(return_value_ptr);                                    \
+    *return_value_ptr = ret;                                            \
+    RETURN_TRUE;                                                        \
 
 PHP_METHOD(yext_controller, render) {
     CALL_YAF_CONTROLLER_RENDER_DISPLAY(render)
