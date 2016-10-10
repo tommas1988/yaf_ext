@@ -184,6 +184,7 @@ PHP_METHOD(yext_plugin, postDispatch) {
     }                                                                   \
                                                                         \
     if (YEXT_G(raw_action)) {                                           \
+        Z_DELREF_P(action);                                             \
         action = YEXT_G(raw_action);                                    \
     }                                                                   \
                                                                         \
