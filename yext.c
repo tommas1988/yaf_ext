@@ -172,6 +172,10 @@ PHP_METHOD(yext_plugin, postDispatch) {
 }
 
 /*
+ * TODO: return the value returned by parent render or display method
+ *
+ * TOTO: Whether or not should define this macro, since it`s hard to debug macro
+ *
  * TODO: fix the bug: view template will be action name resolved by url,
  * regardless of pass a different template explicitly
  */
