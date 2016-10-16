@@ -22,7 +22,8 @@
 #include "config.h"
 #endif
 
-#include "string.h"
+#include <string.h>
+#include <ctype.h>
 
 #include "php.h"
 #include "php_ini.h"
@@ -121,43 +122,42 @@ PHP_METHOD(yext_plugin, preDispatch) {
     request_ce = Z_OBJCE_P(request);
     raw_action = zend_read_property(request_ce, request, ZEND_STRL(YAF_REQUEST_PROPERTY_NAME_ACTION), 1 TSRMLS_CC);
 
-    /* TODO: long action name seperators will be configurable in yaf.long_action_seps */
-    const char *seps = "-";
-    char *action_str = emalloc(Z_STRLEN_P(raw_action));
-    char *last = Z_STRVAL_P(raw_action), *curr = NULL;
+    /* TODO: long action name seperators will be configurable in yaf.action_name_sep */
+    const char sep = '-';
+    char *action_str = emalloc(Z_STRLEN_P(raw_action) + 1), *p = Z_STRVAL_P(raw_action);
+    size_t len = 0;
+    zend_bool last_sep_char = 0;
 
-    /* set first char to null byte */
-    *action_str = '\0';
+    while (*p) {
+        if (*p == sep) {
+            last_sep_char = 1;
+            p++;
 
-    while (curr = strpbrk(last, seps)) {
-        if (last == curr) { /* increment pointor when the first char is seperator */
-            if (!++last) {      /* break when null charactor is encountered */
-                break;
-            }
             continue;
         }
 
-        strncat(action_str, last, curr-last);
-        last = curr + 1;
+        action_str[len++] = last_sep_char ? toupper(*p) : *p;
+        last_sep_char = 0;
+        p++;
     }
 
-    if (last != Z_STRVAL_P(raw_action)) {
-        /* put the last part in action name */
-        strcat(action_str, last);
+    action_str[len] = '\0';
+
+    if (Z_STRLEN_P(raw_action) == len) {
+        efree(action_str);
+    } else {
+        /* lower case first char of action name */
+        *action_str = tolower(action_str[0]);
 
         MAKE_STD_ZVAL(action);
-        ZVAL_STRING(action, action_str, 0);
+        ZVAL_STRINGL(action, action_str, len, 0);
 
         /* increment ref count to prevent raw_action from being freed when trigger zend_update_property */
         Z_ADDREF_P(raw_action);
         zend_update_property(request_ce, request, ZEND_STRL(YAF_REQUEST_PROPERTY_NAME_ACTION), action TSRMLS_CC);
 
         YEXT_G(raw_action) = raw_action;
-    } else {
-        efree(action_str);
     }
-
-    RETURN_TRUE;
 }
 
 PHP_METHOD(yext_plugin, postDispatch) {
